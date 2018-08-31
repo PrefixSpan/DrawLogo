@@ -12,7 +12,10 @@ public:
   static void DrawLogo(HWND hWnd, HDC hdc);
   static void DrawCircle(HDC hDC, int x, int y, int len, COLORREF color);
 
-private:
-  HINSTANCE cur_instance;
+  static void GetCenterPoint(HWND hWnd);
 
+private:
+  HINSTANCE        cur_instance_;
+  static POINT     center_point_;
+  static int       rect_size_;
 };
