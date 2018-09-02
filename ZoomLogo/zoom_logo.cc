@@ -39,7 +39,7 @@ HWND ZoomLogo::CreateWnd(HINSTANCE hInstance, int nCmdShow)
 
   HWND hWnd = NULL;
   DWORD wnd_style = WS_OVERLAPPEDWINDOW;
-  DWORD wnd_style_ex = WS_EX_TOPMOST;
+  DWORD wnd_style_ex = 0;
   hWnd = CreateWindowEx(wnd_style_ex, L"wndZoomLogo", L"ZoomLogo", wnd_style,
     CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, NULL, NULL, hInstance, NULL);
 
@@ -164,6 +164,59 @@ void DrawRoundRectangle(HDC hDC, int x1, int y1, int x2, int y2, int x3, int y3,
 
 void ZoomLogo::DrawLogo(HWND hWnd, HDC hDC)
 {
+    if (0)
+    {
+
+        static HDC hMemDC = CreateCompatibleDC(hDC);
+
+        COLORREF color = RGB(90, 190, 90);
+        HBRUSH hBrush = CreateSolidBrush(color);
+        HBRUSH hOldBrush = (HBRUSH)SelectObject(hMemDC, hBrush);
+
+        HPEN hPen = CreatePen(PS_SOLID, 1, color);
+        HPEN hOldPen = (HPEN)SelectObject(hMemDC, hPen);
+
+        static HBITMAP hMemBitmap = CreateCompatibleBitmap(hDC, 200, 200);
+        HBITMAP hOldBitmap = (HBITMAP)SelectObject(hMemDC, hMemBitmap);
+        PatBlt(hMemDC, 0, 0, 200, 200, BLACKNESS);
+
+
+
+
+        //   Rectangle(hDC, 0, 100, 400, 300);
+
+        SetGraphicsMode(hDC, GM_ADVANCED);
+
+        XFORM xForm;
+        xForm.eM11 = 1.0;
+        xForm.eM12 = 0.0;
+        xForm.eM21 = 0.0;
+        xForm.eM22 = 1.0;
+        xForm.eDx = 100.0;
+        xForm.eDy = 100.0;
+
+
+        //  XFORM xForm2;
+        //   CopyMemory(&xForm2, &xForm, sizeof(XFORM));
+        SetWindowOrgEx(hDC, -00, -200, NULL);
+        for (int i = 0; i < 200; i++)
+        {
+            xForm.eM22 = (200.0 + i) / 200.0;
+            //  xForm.eDx = 0;
+            SetWorldTransform(hDC, &xForm);
+            BitBlt(hDC, i, -100, 1, 200, hMemDC, 0, 0, SRCCOPY);
+        }
+
+        SelectObject(hDC, hOldBrush);
+        DeleteObject(hPen);
+
+        SelectObject(hDC, hOldPen);
+        DeleteObject(hOldBrush);
+
+        return;
+    }
+
+
   // Draw Circle
   int x_circle_center = center_point_.x;
   int y_circle_center = center_point_.y;
@@ -201,6 +254,7 @@ void ZoomLogo::DrawLogo(HWND hWnd, HDC hDC)
   DrawLine(hDC, point2.x, point2.y, point3.x, point3.y, PS_SOLID, 2, RGB(0,0,0));
   DrawLine(hDC, point3.x, point3.y, point4.x, point4.y, PS_SOLID, 2, RGB(0,0,0));
   DrawLine(hDC, point4.x, point4.y, point1.x, point1.y, PS_SOLID, 2, RGB(0,0,0));
+
 }
 
 //»æÖÆÊµÐÄÔ²
