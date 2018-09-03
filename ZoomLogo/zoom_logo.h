@@ -11,7 +11,7 @@ public:
   static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
   static void DrawLogo(HWND hWnd, HDC hdc);
   static void DrawCircle(HDC hDC, int x, int y, int len, COLORREF color);
-
+  static void DrawText(HDC hDC, int x, int y, LPCTSTR text, COLORREF color);
 
   static void OnSize(HWND hWnd);
   static BOOL OnEraseBKGround(HWND hWnd, HDC hDC);

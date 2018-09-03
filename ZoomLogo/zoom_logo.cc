@@ -175,6 +175,13 @@ void ZoomLogo::DrawLogo(HWND hWnd, HDC hDC)
   DrawCircle(hDC, x_circle_center, y_circle_center, circle_radius2, RGB(250, 250, 250));
   DrawCircle(hDC, x_circle_center, y_circle_center, circle_radius1, RGB(45, 182, 254));
 
+  // Draw text
+  int xpos_text = center_point_.x;
+  int ypos_text = center_point_.y + rect_size_ / 3;
+  COLORREF text_color = RGB(0, 0, 255);
+  LPCTSTR text = L"Hello Zoom";
+  DrawText(hDC, xpos_text, ypos_text, text, text_color);
+
   // Draw left rectangle 
   int rect_wight = rect_size_ * 8 / 33;
   int rect_height = rect_size_ * 6 / 32;
@@ -188,13 +195,13 @@ void ZoomLogo::DrawLogo(HWND hWnd, HDC hDC)
   DrawRoundRectangle(hDC, x_pos, y_pos, x_pos + rect_wight, y_pos + rect_height, w, h, RGB(255,255,255));
 
   // Draw right 
-  COLORREF color = RGB(100, 255, 255);
+  COLORREF right_color = RGB(100, 255, 255);
   int right_margin = rect_height / 10;
   int right_rect_width = rect_wight / 3;
   int right_rect_height = rect_height / 2;
   float scale_faltor = (float)right_rect_width;
   DrawRightPart(hDC, right_rect_width, right_rect_height, scale_faltor, 0, 
-    x_pos + rect_wight + right_margin, y_pos, color);
+    x_pos + rect_wight + right_margin, y_pos, right_color);
 
   return;
 }
@@ -216,3 +223,38 @@ void ZoomLogo::DrawCircle(HDC hDC, int x, int y, int len, COLORREF color)
   DeleteObject(hPen);
 }
 
+void ZoomLogo::DrawText(HDC hDC, int x, int y, LPCTSTR text, COLORREF color)
+{
+  int text_width = x / 5;
+  int text_heigth = text_width*5 / 12;
+
+  HFONT new_font = CreateFont(
+    text_width,
+    text_heigth,
+    0,
+    0,
+    FW_LIGHT,
+    0,
+    0,
+    0,
+    GB2312_CHARSET,
+    OUT_DEFAULT_PRECIS,
+    CLIP_DEFAULT_PRECIS,
+    DEFAULT_QUALITY,
+    DEFAULT_PITCH | FF_DONTCARE,
+    L"Segoe UI");
+
+  HFONT old_font = (HFONT)SelectObject(hDC, new_font);
+
+  SetTextColor(hDC, color);
+  SetBkColor(hDC, RGB(0, 0, 0));
+
+  SIZE size;
+  GetTextExtentPoint(hDC, text, lstrlen(text), &size);
+  int xpos_offset = size.cx/2;
+
+  TextOut(hDC, x - xpos_offset, y, text, lstrlen(text));
+
+  SelectObject(hDC, old_font);
+  DeleteObject(new_font);
+}
