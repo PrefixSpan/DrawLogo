@@ -12,6 +12,10 @@ public:
   static void DrawLogo(HWND hWnd, HDC hdc);
   static void DrawCircle(HDC hDC, int x, int y, int len, COLORREF color);
 
+
+  static void OnSize(HWND hWnd);
+  static BOOL OnEraseBKGround(HWND hWnd, HDC hDC);
+
   static void GetCenterPoint(HWND hWnd);
 
 private:

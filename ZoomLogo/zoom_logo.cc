@@ -41,7 +41,7 @@ HWND ZoomLogo::CreateWnd(HINSTANCE hInstance, int nCmdShow)
   DWORD wnd_style = WS_OVERLAPPEDWINDOW;
   DWORD wnd_style_ex = 0;
   hWnd = CreateWindowEx(wnd_style_ex, L"wndZoomLogo", L"ZoomLogo", wnd_style,
-    CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, NULL, NULL, hInstance, NULL);
+    CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, NULL);
 
   if (hWnd)
   {
@@ -76,7 +76,11 @@ LRESULT CALLBACK ZoomLogo::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
     EndPaint(hWnd, &ps);
     break;
   case WM_SIZE:
-    GetCenterPoint(hWnd);
+    OnSize(hWnd);
+    break;
+  case WM_ERASEBKGND:
+    hdc = GetDC(hWnd);
+    OnEraseBKGround(hWnd, hdc);
     break;
   case WM_DESTROY:
     PostQuitMessage(0);
@@ -88,143 +92,86 @@ LRESULT CALLBACK ZoomLogo::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
   return 0;
 }
 
-//绘制指定属性的直线
-static void DrawLine(HDC hDC, int x0, int y0, int x1, int y1, int style, int width, COLORREF color)
+void ZoomLogo::OnSize(HWND hWnd)
 {
-  HPEN hPen = CreatePen(style, width, color);
-  HPEN hOldPen = (HPEN)SelectObject(hDC, hPen);
-
-  MoveToEx(hDC, x0, y0, NULL);
-  LineTo(hDC, x1, y1);
-
-  SelectObject(hDC, hOldPen);
-  DeleteObject(hPen);
+  GetCenterPoint(hWnd);
 }
 
-// 绘制圆角矩形
-void DrawRoundRectange(HDC hDC, float x, float y, float Width, float Height, 
-                       float arcSize, COLORREF lineColor, float lineWidth)
+BOOL ZoomLogo::OnEraseBKGround(HWND hWnd, HDC hDC)
 {
-  // 圆角矩形的半宽（hew）和半高（heh）
-  float hew = Width / arcSize / 2;
-  float heh = Height / arcSize / 2;
+  HBRUSH hBrush = CreateSolidBrush(RGB(1,1,1));
+  HBRUSH hOldBrush = (HBRUSH)SelectObject(hDC, hBrush);
 
-  // 圆角修正
-  if(fabs(hew - heh) > 10)
-  {
-    hew = heh = hew > heh ? heh : hew;
-  }
+  RECT rect_client;
+  GetClientRect(hWnd, &rect_client);
+  PatBlt(hDC, rect_client.left, rect_client.top, rect_client.right - rect_client.left, 
+    rect_client.bottom - rect_client.top, PATCOPY);
 
-  // 边线修正
-  int lineMove = 1;
+  SelectObject(hDC, hOldBrush);
+  DeleteObject(hBrush);
 
-  //////////////////////////////////////////////////////////////////////////
-  // 画圆角
-  //////////////////////////////////////////////////////////////////////////
-  // 画左上圆角
-  //Arc(hDC, x, y, x+2*hew, y+2*heh, 180, 90, 180, 90);
-  //// 画右上圆角
-  //Arc(hDC, x+Width-2*hew, y, x+Width, y+2*heh, 270, 90, 270, 90);
-  //// 画右下圆角
-  //Arc(hDC, x+Width-2*hew, y+Height-2*heh, x+Width, y+Height, 0, 90, 270, 90);
-  //// 画左下圆角
-  //Arc(hDC, x, y+Height-2*heh, x+2*hew, y+Height, 90, 90, 270, 90);
-
-  ////////////////////////////////////////////////////////////////////////////
-  //// 画直线（连接4个圆角）
-  ////////////////////////////////////////////////////////////////////////////
-  //// 画顶部横线
-  //DrawLine(hDC, x + hew-lineMove, y, x+Width-hew+lineMove, y, PS_SOLID, 2, RGB(0,0,0));
-  //// 画右侧竖线
-  //DrawLine(hDC, x+Width, y + heh-lineMove, x+Width, y+Height-heh+lineMove, PS_SOLID, 2, RGB(0,0,0));
-  //// 画底部横线
-  //DrawLine(hDC, x+Width-hew+lineMove, y+Height, x+hew-lineMove, y+Height, PS_SOLID, 2, RGB(0,0,0));
-  //// 画左侧竖线
-  //DrawLine(hDC, x, y+Height-heh+lineMove, x, y+heh-lineMove, PS_SOLID, 2, RGB(0,0,0));
+  return TRUE;
 }
 
 void DrawRoundRectangle(HDC hDC, int x1, int y1, int x2, int y2, int x3, int y3, COLORREF color)
 {
-  HRGN hrgn = CreateRoundRectRgn(x1, y1, x2, y2, x3, y3);
+  HRGN hrgn_roundrect = CreateRoundRectRgn(x1, y1, x2, y2, x3, y3);
+
+  HRGN hrgn_rect_lefttop = CreateRectRgn(x1, y1, x1 + x3, y1 + y3);
+  CombineRgn(hrgn_roundrect, hrgn_rect_lefttop, hrgn_roundrect, RGN_OR);
+
+  HRGN hrgn_rect_rightbottom = CreateRectRgn(x2 - x3, y2 - y3, x2 - 1, y2 - 1);
+  CombineRgn(hrgn_roundrect, hrgn_rect_rightbottom, hrgn_roundrect, RGN_OR);
 
   HBRUSH hBrush = CreateSolidBrush(color);
   HBRUSH hOldBrush = (HBRUSH)SelectObject(hDC, hBrush);
 
-  FillRgn(hDC, hrgn, hBrush);
-
-  HPEN hPen = CreatePen(PS_SOLID, 1, color);
-  HPEN hOldPen = (HPEN)SelectObject(hDC, hPen);
+  FillRgn(hDC, hrgn_roundrect, hBrush);
 
   SelectObject(hDC, hOldBrush);
-  DeleteObject(hPen);
-
-  SelectObject(hDC, hOldPen);
   DeleteObject(hOldBrush);
+}
+
+void DrawRightPart(HDC hDC, int width, int hight, float factor, float y2, float x3, float y3,COLORREF color)
+{
+  HDC hMemDC = CreateCompatibleDC(hDC);
+  HBITMAP hMemBitmap = CreateCompatibleBitmap(hDC, width, hight);
+  HBITMAP hOldBitmap = (HBITMAP)SelectObject(hMemDC, hMemBitmap);
+  PatBlt(hMemDC, 0, 0, width, hight, PATCOPY);
+
+  SetGraphicsMode(hDC, GM_ADVANCED);
+
+  XFORM xForm;
+  xForm.eM11 = 1.0;
+  xForm.eM12 = 0.0;
+  xForm.eM21 = 0.0;
+  xForm.eM22 = 1.0;
+  xForm.eDx = x3;
+  xForm.eDy = y3;
+
+  SetWindowOrgEx(hDC, 0, -hight, NULL);
+  for (int i = 0; i < width; i++)
+  {
+    xForm.eM22 = (factor + i) / factor;
+    SetWorldTransform(hDC, &xForm);
+    BitBlt(hDC, i, -hight/2, 1, hight, hMemDC, 0, 0, SRCCOPY);
+  }
 }
 
 void ZoomLogo::DrawLogo(HWND hWnd, HDC hDC)
 {
-    if (0)
-    {
-
-        static HDC hMemDC = CreateCompatibleDC(hDC);
-
-        COLORREF color = RGB(90, 190, 90);
-        HBRUSH hBrush = CreateSolidBrush(color);
-        HBRUSH hOldBrush = (HBRUSH)SelectObject(hMemDC, hBrush);
-
-        HPEN hPen = CreatePen(PS_SOLID, 1, color);
-        HPEN hOldPen = (HPEN)SelectObject(hMemDC, hPen);
-
-        static HBITMAP hMemBitmap = CreateCompatibleBitmap(hDC, 200, 200);
-        HBITMAP hOldBitmap = (HBITMAP)SelectObject(hMemDC, hMemBitmap);
-        PatBlt(hMemDC, 0, 0, 200, 200, BLACKNESS);
-
-
-
-
-        //   Rectangle(hDC, 0, 100, 400, 300);
-
-        SetGraphicsMode(hDC, GM_ADVANCED);
-
-        XFORM xForm;
-        xForm.eM11 = 1.0;
-        xForm.eM12 = 0.0;
-        xForm.eM21 = 0.0;
-        xForm.eM22 = 1.0;
-        xForm.eDx = 100.0;
-        xForm.eDy = 100.0;
-
-
-        //  XFORM xForm2;
-        //   CopyMemory(&xForm2, &xForm, sizeof(XFORM));
-        SetWindowOrgEx(hDC, -00, -200, NULL);
-        for (int i = 0; i < 200; i++)
-        {
-            xForm.eM22 = (200.0 + i) / 200.0;
-            //  xForm.eDx = 0;
-            SetWorldTransform(hDC, &xForm);
-            BitBlt(hDC, i, -100, 1, 200, hMemDC, 0, 0, SRCCOPY);
-        }
-
-        SelectObject(hDC, hOldBrush);
-        DeleteObject(hPen);
-
-        SelectObject(hDC, hOldPen);
-        DeleteObject(hOldBrush);
-
-        return;
-    }
-
-
   // Draw Circle
   int x_circle_center = center_point_.x;
   int y_circle_center = center_point_.y;
   int circle_radius1 = rect_size_ / 2;
-  int circle_radius2 = circle_radius1 + 20;
-  int circle_radius3 = circle_radius1 + 30;
 
-  DrawCircle(hDC, x_circle_center, y_circle_center, circle_radius3, RGB(90, 90, 90));
+  int circle_scale_factor1 = 20;
+  int circle_radius2 = circle_radius1 + circle_scale_factor1;
+
+  int circle_scale_factor2 = 10;
+  int circle_radius3 = circle_radius2 + circle_scale_factor2;
+
+  DrawCircle(hDC, x_circle_center, y_circle_center, circle_radius3, RGB(190, 190, 190));
   DrawCircle(hDC, x_circle_center, y_circle_center, circle_radius2, RGB(250, 250, 250));
   DrawCircle(hDC, x_circle_center, y_circle_center, circle_radius1, RGB(45, 182, 254));
 
@@ -235,29 +182,23 @@ void ZoomLogo::DrawLogo(HWND hWnd, HDC hDC)
   int y_pos = y_circle_center - rect_height / 2;
   int left_offset = rect_size_ / 20;
   x_pos -= left_offset;
-//  int x_pos = x_circle_center - circle_radius1 * 2 / 5;
+  int w = rect_size_ / 10;
+  int h = rect_size_ / 10;
 
-  DrawRoundRectangle(hDC, x_pos, y_pos, x_pos + rect_wight, y_pos + rect_height, 20, 20, RGB(255,255,255));
-
-  POINT point1, point2, point3, point4;
-  point1.x = x_pos + rect_wight + circle_radius1/40;
-  point1.y = y_circle_center - rect_height / 5;
-  point2.x = point1.x + rect_height / 2;
-  point2.y = y_circle_center - rect_height / 2;
-  point3.x = point2.x;
-  point3.y = y_circle_center + rect_height / 2;
-  point4.x = point1.x;
-  point4.y = y_circle_center + rect_height / 5;
+  DrawRoundRectangle(hDC, x_pos, y_pos, x_pos + rect_wight, y_pos + rect_height, w, h, RGB(255,255,255));
 
   // Draw right 
-  DrawLine(hDC, point1.x, point1.y, point2.x, point2.y, PS_SOLID, 2, RGB(0,0,0));
-  DrawLine(hDC, point2.x, point2.y, point3.x, point3.y, PS_SOLID, 2, RGB(0,0,0));
-  DrawLine(hDC, point3.x, point3.y, point4.x, point4.y, PS_SOLID, 2, RGB(0,0,0));
-  DrawLine(hDC, point4.x, point4.y, point1.x, point1.y, PS_SOLID, 2, RGB(0,0,0));
+  COLORREF color = RGB(100, 255, 255);
+  int right_margin = rect_height / 10;
+  int right_rect_width = rect_wight / 3;
+  int right_rect_height = rect_height / 2;
+  float scale_faltor = (float)right_rect_width;
+  DrawRightPart(hDC, right_rect_width, right_rect_height, scale_faltor, 0, 
+    x_pos + rect_wight + right_margin, y_pos, color);
 
+  return;
 }
 
-//绘制实心圆
 void ZoomLogo::DrawCircle(HDC hDC, int x, int y, int len, COLORREF color)
 {
   HBRUSH hBrush = CreateSolidBrush(color);
@@ -269,9 +210,9 @@ void ZoomLogo::DrawCircle(HDC hDC, int x, int y, int len, COLORREF color)
   Ellipse(hDC, x-len/2, y-len/2, x+len/2, y+len/2);
 
   SelectObject(hDC, hOldBrush);
-  DeleteObject(hPen);
+  DeleteObject(hOldBrush);
 
   SelectObject(hDC, hOldPen);
-  DeleteObject(hOldBrush);
+  DeleteObject(hPen);
 }
 
