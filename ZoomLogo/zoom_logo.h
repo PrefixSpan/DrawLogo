@@ -24,7 +24,6 @@ public:
   static void GetCenterPoint(HWND hWnd);
 
 private:
-  HINSTANCE        cur_instance_;
   static POINT     center_point_;
   static int       rect_size_;
 };
