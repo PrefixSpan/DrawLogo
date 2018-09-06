@@ -14,16 +14,18 @@ public:
   static void DrawGradients(HDC hdc, int x, int y, int len, COLORREF color);
   static void DrawRoundRectangle(HDC hdc, int x1, int y1, int x2, int y2, int x3, int y3, COLORREF color);
   static void DrawPolygon(HDC hdc, int x, int y, int len, COLORREF color);
-
-  static void DrawText(HDC hDC, int x, int y, LPCTSTR text, COLORREF color);
+  static void DrawText(HDC hDC, int x, int y, int height, int width, LPCTSTR text, COLORREF color);
 
   static void OnPaint(HWND hWnd, HDC hDC);
   static void OnSize(HWND hWnd);
   static BOOL OnEraseBKGround(HWND hWnd, HDC hDC);
+
+  static void ClearDC(HWND hWnd, HDC hDC);
 
   static void GetCenterPoint(HWND hWnd);
 
 private:
   static POINT     center_point_;
   static int       rect_size_;
+  static BOOL      is_use_loadimage_;
 };
