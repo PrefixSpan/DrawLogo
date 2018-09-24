@@ -141,7 +141,7 @@ void ZoomLogo::DrawLogo(HWND hWnd, HDC hdc)
 
     // Draw png image
     CImage image; 
-    HRESULT ret = image.Load(L"D:\\Work\\ZoomLogo\\zoomAppIcon.png"); 
+    HRESULT ret = image.Load(L"zoomAppIcon.png"); 
     int width= image.GetHeight();
     int height= image.GetHeight();
     for(int i = 0; i < width; i++)  
