@@ -5,6 +5,10 @@
 #include "DrawRoundWnd.h"
 #include <atlimage.h> 
 
+using namespace Gdiplus;
+
+#pragma comment (lib,"GdiPlus.lib")
+
 #define MAX_LOADSTRING 100
 
 // Global Variables:
@@ -16,7 +20,7 @@ TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
+void DrawLayeredWindow(HWND handle_wnd);
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
@@ -27,6 +31,11 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
  	// TODO: Place code here.
+  GdiplusStartupInput gdiplus_startup_input;
+  ULONG_PTR gdi_token;
+
+  GdiplusStartup(&gdi_token, &gdiplus_startup_input, NULL);
+
 	MSG msg;
 	HACCEL hAccelTable;
 
@@ -53,42 +62,13 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		}
 	}
 
+  GdiplusShutdown(gdi_token);
+
 	return (int) msg.wParam;
 }
 
-
-
-//
-//  FUNCTION: MyRegisterClass()
-//
-//  PURPOSE: Registers the window class.
-//
-//  COMMENTS:
-//
-//    This function and its usage are only necessary if you want this code
-//    to be compatible with Win32 systems prior to the 'RegisterClassEx'
-//    function that was added to Windows 95. It is important to call this function
-//    so that the application will get 'well formed' small icons associated
-//    with it.
-//
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
-	CImage image; 
-	HRESULT ret = image.Load(L"zoomAppIcon.png"); 
-	int width= image.GetHeight();
-	int height= image.GetHeight();
-	for(int i = 0; i < width; i++)  
-	{
-		for(int j = 0; j < height; j++)  
-		{
-			unsigned char* pucColor = reinterpret_cast<unsigned char *>(image.GetPixelAddress(i , j));  
-			pucColor[0] = pucColor[0] * pucColor[3] / 255;  
-			pucColor[1] = pucColor[1] * pucColor[3] / 255;  
-			pucColor[2] = pucColor[2] * pucColor[3] / 255;  
-		}
-	}
-	HBITMAP bitmap_image = image.Detach(); 
-
 	WNDCLASSEX wcex;
 
 	wcex.cbSize = sizeof(WNDCLASSEX);
@@ -100,7 +80,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	wcex.hInstance		= hInstance;
 	wcex.hIcon			= LoadIcon(hInstance, MAKEINTRESOURCE(IDI_DRAWROUNDWND));
 	wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
-	wcex.hbrBackground	= CreatePatternBrush(bitmap_image);
+	wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);//CreatePatternBrush(bitmap_image);
 	wcex.lpszMenuName	= NULL;
 	wcex.lpszClassName	= szWindowClass;
 	wcex.hIconSm		= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
@@ -108,60 +88,34 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	return RegisterClassEx(&wcex);
 }
 
-//
-//   FUNCTION: InitInstance(HINSTANCE, int)
-//
-//   PURPOSE: Saves instance handle and creates main window
-//
-//   COMMENTS:
-//
-//        In this function, we save the instance handle in a global variable and
-//        create and display the main program window.
-//
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    HWND hWnd;
 
    hInst = hInstance; // Store instance handle in our global variable
 
-//   hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-  //    CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
-
-
    hWnd = CreateWindowEx(WS_EX_TOPMOST | WS_EX_LAYERED,
 	   szWindowClass,
 	   szTitle, 
-	   WS_POPUP,
-	   CW_USEDEFAULT, 
-	   CW_USEDEFAULT, 
-	   52, 
-	   52,
+	   WS_OVERLAPPED,
+	   CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
 	   NULL,
 	   NULL,
 	   hInstance,
 	   NULL);
-
 
    if (!hWnd)
    {
       return FALSE;
    }
 
+   DrawLayeredWindow(hWnd);
+
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
    return TRUE;
 }
-
-//
-//  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
-//
-//  PURPOSE:  Processes messages for the main window.
-//
-//  WM_COMMAND	- process the application menu
-//  WM_PAINT	- Paint the main window
-//  WM_DESTROY	- post a quit message and return
-//
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -171,16 +125,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	switch (message)
 	{
-
-	case WM_CREATE:
-		{
-			// 设置透明色
-			COLORREF clTransparent = RGB(0, 0, 0);
-			SetLayeredWindowAttributes(hWnd, clTransparent, 0, LWA_COLORKEY);
-		}
-		return 0;
-
-	case WM_LBUTTONDOWN: //当鼠标左键点击时可以拖曳窗口
+	case WM_LBUTTONDOWN: 
 		PostMessage(hWnd, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
 		return 0;
 
@@ -190,9 +135,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// Parse the menu selections:
 		switch (wmId)
 		{
-		case IDM_ABOUT:
-			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
-			break;
 		case IDM_EXIT:
 			DestroyWindow(hWnd);
 			break;
@@ -214,22 +156,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-// Message handler for about box.
-INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	UNREFERENCED_PARAMETER(lParam);
-	switch (message)
-	{
-	case WM_INITDIALOG:
-		return (INT_PTR)TRUE;
+void DrawLayeredWindow(HWND handle_wnd)
+{	
+  Image image(_T("zoomAppIcon.png"));
+  int image_width = image.GetWidth();
+  int image_height = image.GetHeight();
 
-	case WM_COMMAND:
-		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
-		{
-			EndDialog(hDlg, LOWORD(wParam));
-			return (INT_PTR)TRUE;
-		}
-		break;
-	}
-	return (INT_PTR)FALSE;
+  HDC hdc = ::GetDC(handle_wnd);
+  HDC mem_dc = ::CreateCompatibleDC(hdc);	
+
+  HBITMAP mem_bitmap = (HBITMAP)::CreateCompatibleBitmap(hdc, image_width, image_height);	
+  HBITMAP old_bitmap = (HBITMAP)::SelectObject(mem_dc, mem_bitmap); 	
+
+  Graphics graphis(mem_dc);
+  graphis.DrawImage(&image, 0, 0, image_width, image_height);
+  
+  CRect rcWindow;	
+  GetWindowRect(GetDesktopWindow(), rcWindow);
+  POINT pos_window = {(rcWindow.right-image_width)/2, (rcWindow.bottom-image_height)/2};	
+  SIZE size_window = {image_width, image_height};	
+  
+  POINT point_src = {0, 0};
+ 
+  BLENDFUNCTION bf;	
+  bf.BlendOp = AC_SRC_OVER;	
+  bf.BlendFlags = 0;	
+  bf.SourceConstantAlpha = 255;
+  bf.AlphaFormat = AC_SRC_ALPHA; 	
+  
+  ::UpdateLayeredWindow(handle_wnd, hdc, &pos_window, &size_window, mem_dc, &point_src, 0, &bf, ULW_ALPHA);
+  
+  ::SelectObject(mem_dc, old_bitmap); 	
+  if(mem_dc) ::DeleteDC(mem_dc);
+  if(mem_bitmap) ::DeleteObject(mem_bitmap);
+  ::ReleaseDC(handle_wnd, hdc);
 }

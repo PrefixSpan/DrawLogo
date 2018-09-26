@@ -4,7 +4,6 @@
 
 #pragma once
 #include <GdiPlus.h>
-#include <atlwinx.h>
 using namespace Gdiplus;
 
 #pragma comment (lib,"GdiPlus.lib")
